@@ -434,6 +434,7 @@ const ComponentGrid: React.FC = () => {
       {/* Component Editor Dialog */}
       {isEditorOpen && (
         <ComponentEditor
+          isOpen={isEditorOpen}
           component={editingComponent}
           onSave={handleSaveComponent}
           onClose={() => setIsEditorOpen(false)}
@@ -443,6 +444,7 @@ const ComponentGrid: React.FC = () => {
       {/* Component Viewer Dialog */}
       {isViewerOpen && viewingComponent && (
         <ComponentViewer
+          isOpen={isViewerOpen}
           component={viewingComponent}
           onClose={() => setIsViewerOpen(false)}
         />
