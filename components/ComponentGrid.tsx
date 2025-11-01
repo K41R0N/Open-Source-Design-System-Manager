@@ -10,7 +10,7 @@ import { Plus, Package, Download, Tag, Folder, ChevronRight, ChevronDown, Search
 import ComponentCard from './ComponentCard'
 import ComponentEditor from './ComponentEditor'
 import ComponentViewer from './ComponentViewer'
-import { testComponents } from './test-components'
+import { testComponents } from '@/lib/test-components'
 
 export interface Component {
   id: string
@@ -401,5 +401,48 @@ const ComponentGrid: React.FC = () => {
                 </Button>
               </div>
             </div>
-         
-(Content truncated due to size limit. Use line ranges to read in chunks)
+          )}
+
+          {filteredComponents.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p>No components found. Add some components to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredComponents.map(component => (
+                <ComponentCard
+                  key={component.id}
+                  component={component}
+                  onEdit={handleEditComponent}
+                  onMaximize={handleMaximizeComponent}
+                  onSelect={handleSelectComponent}
+                  onUpdateTags={handleUpdateTags}
+                  selected={selectedComponents.has(component.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Component Editor Dialog */}
+      {isEditorOpen && (
+        <ComponentEditor
+          component={editingComponent}
+          onSave={handleSaveComponent}
+          onClose={() => setIsEditorOpen(false)}
+        />
+      )}
+
+      {/* Component Viewer Dialog */}
+      {isViewerOpen && viewingComponent && (
+        <ComponentViewer
+          component={viewingComponent}
+          onClose={() => setIsViewerOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default ComponentGrid
