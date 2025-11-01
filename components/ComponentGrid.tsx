@@ -412,7 +412,13 @@ const ComponentGrid: React.FC = () => {
               {filteredComponents.map(component => (
                 <ComponentCard
                   key={component.id}
-                  component={component}
+                  id={component.id}
+                  name={component.name}
+                  html={component.html}
+                  css={component.css}
+                  js={component.js}
+                  tags={component.tags}
+                  project={component.project}
                   onEdit={handleEditComponent}
                   onMaximize={handleMaximizeComponent}
                   onSelect={handleSelectComponent}
