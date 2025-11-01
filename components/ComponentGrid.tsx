@@ -22,12 +22,16 @@ export interface Component {
   project?: string
 }
 
-// Add tags to test components
-const enhancedTestComponents = testComponents.map(comp => ({
-  ...comp,
-  tags: comp.id === 'test-component-1' 
-    ? ['navigation', 'header'] 
-    : comp.id === 'test-component-2'
+// Map test components to match Component interface
+const enhancedTestComponents: Component[] = testComponents.map(comp => ({
+  id: comp.id,
+  name: comp.name,
+  html: comp.html,
+  css: comp.css,
+  js: comp.js,
+  tags: comp.id === 'comp-1'
+    ? ['navigation', 'header']
+    : comp.id === 'comp-2'
       ? ['hero', 'banner']
       : ['interactive', 'counter'],
   project: 'Demo Project'
@@ -51,7 +55,7 @@ const ComponentGrid: React.FC = () => {
   // Use useEffect to handle client-side only code
   useEffect(() => {
     setIsClient(true)
-    setComponents(enhancedTestComponents as Component[])
+    setComponents(enhancedTestComponents)
   }, [])
 
   // Skip rendering anything that depends on client-side state until after hydration
