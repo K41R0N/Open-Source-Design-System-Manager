@@ -10,7 +10,7 @@ import { Plus, Package, Download, Tag, Folder, ChevronRight, ChevronDown, Search
 import ComponentCard from './ComponentCard'
 import ComponentEditor from './ComponentEditor'
 import ComponentViewer from './ComponentViewer'
-import { testComponents } from './test-components'
+import { testComponents } from '@/lib/test-components'
 
 export interface Component {
   id: string
