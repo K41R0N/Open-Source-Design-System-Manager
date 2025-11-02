@@ -1,6 +1,7 @@
 import React from 'react'
 import { AuthProvider } from '@/lib/auth-context'
 import { DatabaseProvider } from '@/lib/database-context'
+import { ToastProvider } from '@/lib/toast-context'
 import './globals.css'
 
 export const metadata = {
@@ -16,11 +17,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <AuthProvider>
-          <DatabaseProvider>
-            {children}
-          </DatabaseProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <DatabaseProvider>
+              {children}
+            </DatabaseProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   )

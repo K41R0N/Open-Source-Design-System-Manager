@@ -1,15 +1,17 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { useDatabase, type Component } from '@/lib/database-context'
+import { useToast } from '@/lib/toast-context'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Expand, Edit, ChevronDown, ChevronRight, Package, Search, Plus, Tag, X } from 'lucide-react'
+import { Expand, Edit, ChevronDown, ChevronRight, Package, Search, Plus, Tag, X, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import ComponentEditor from '@/components/ComponentEditor'
 import IframeRenderer from '@/components/IframeRenderer'
+import { PAGINATION, SUCCESS_MESSAGES, ERROR_MESSAGES } from '@/lib/constants'
 
 // Add new project dialog
 const NewProjectDialog = ({ isOpen, onClose, onSave }: { 
@@ -116,22 +118,23 @@ const LoginDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
 // Define the main dashboard page
 export default function DashboardPage() {
   const { user, isAuthenticated } = useAuth()
-  const { 
-    components, 
-    projects, 
-    tags, 
-    addComponent, 
-    updateComponent, 
+  const {
+    components,
+    projects,
+    tags,
+    addComponent,
+    updateComponent,
     addProject,
     deleteProject,
     deleteTag,
     addTagToComponent,
-    removeTagFromComponent 
+    removeTagFromComponent
   } = useDatabase()
-  
+  const toast = useToast()
+
   // State for login dialog
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  
+
   // State for component editor
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [currentComponent, setCurrentComponent] = useState<Component | null>(null)
@@ -139,20 +142,24 @@ export default function DashboardPage() {
   // State for preview dialog
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [previewComponent, setPreviewComponent] = useState<Component | null>(null)
-  
+
   // State for new project dialog
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
-  
+
   // State for selected components (for export)
   const [selectedComponents, setSelectedComponents] = useState<string[]>([])
-  
+
   // State for expanded folders
   const [expandedProjects, setExpandedProjects] = useState<string[]>(['all'])
   const [expandedTags, setExpandedTags] = useState<string[]>(['all'])
-  
+
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(PAGINATION.DEFAULT_PAGE_SIZE)
   
   // Check if user is authenticated when the page loads
   useEffect(() => {
@@ -219,32 +226,58 @@ export default function DashboardPage() {
     }
   }
   
-  // Filter components based on search and active filter
-  const filteredComponents = components.filter(comp => {
-    // Filter by search query
-    const matchesSearch = searchQuery === '' || 
-      comp.name.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    // Filter by active filter (project or tag)
-    let matchesFilter = activeFilter === 'all'
-    
-    if (!matchesFilter && activeFilter.startsWith('project:')) {
-      const projectId = activeFilter.replace('project:', '')
-      matchesFilter = comp.project_id === projectId
+  // Memoized filtered components - prevents unnecessary recalculation
+  const filteredComponents = useMemo(() => {
+    return components.filter(comp => {
+      // Filter by search query
+      const matchesSearch = searchQuery === '' ||
+        comp.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+      // Filter by active filter (project or tag)
+      let matchesFilter = activeFilter === 'all'
+
+      if (!matchesFilter && activeFilter.startsWith('project:')) {
+        const projectId = activeFilter.replace('project:', '')
+        matchesFilter = comp.project_id === projectId
+      }
+
+      if (!matchesFilter && activeFilter.startsWith('tag:')) {
+        const tagName = activeFilter.replace('tag:', '')
+        const tagObj = tags.find(t => t.name === tagName)
+
+        // Handle both tag IDs and tag names for backwards compatibility
+        matchesFilter = tagObj ?
+          (comp.tags?.includes(tagObj.id) || comp.tags?.includes(tagName)) :
+          false
+      }
+
+      return matchesSearch && matchesFilter
+    })
+  }, [components, searchQuery, activeFilter, tags])
+
+  // Memoized pagination calculations
+  const paginationInfo = useMemo(() => {
+    const totalItems = filteredComponents.length
+    const totalPages = Math.ceil(totalItems / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedComponents = filteredComponents.slice(startIndex, endIndex)
+
+    return {
+      totalItems,
+      totalPages,
+      startIndex,
+      endIndex,
+      paginatedComponents,
+      hasNextPage: currentPage < totalPages,
+      hasPrevPage: currentPage > 1,
     }
-    
-    if (!matchesFilter && activeFilter.startsWith('tag:')) {
-      const tagName = activeFilter.replace('tag:', '')
-      const tagObj = tags.find(t => t.name === tagName)
-      
-      // Handle both tag IDs and tag names for backwards compatibility
-      matchesFilter = tagObj ? 
-        (comp.tags?.includes(tagObj.id) || comp.tags?.includes(tagName)) : 
-        false
-    }
-    
-    return matchesSearch && matchesFilter
-  })
+  }, [filteredComponents, currentPage, itemsPerPage])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, activeFilter])
   
   // Function to handle packaging and downloading selected components
   const handlePackageDownload = () => {
@@ -254,7 +287,7 @@ export default function DashboardPage() {
     )
     
     if (selectedComponentsData.length === 0) {
-      alert('Please select at least one component to package')
+      toast.warning('Please select at least one component to package')
       return
     }
     
@@ -478,16 +511,48 @@ export default function DashboardPage() {
           
           {/* Components grid */}
           <div>
-            <h2 className="text-xl font-bold uppercase mb-4">
-              {activeFilter === 'all' 
-                ? 'All Components' 
-                : activeFilter.startsWith('project:')
-                  ? `Project: ${projects.find(p => p.id === activeFilter.replace('project:', ''))?.name}`
-                  : `Tag: ${activeFilter.replace('tag:', '')}`
-              }
-            </h2>
-            
-            {filteredComponents.length === 0 ? (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold uppercase">
+                {activeFilter === 'all'
+                  ? 'All Components'
+                  : activeFilter.startsWith('project:')
+                    ? `Project: ${projects.find(p => p.id === activeFilter.replace('project:', ''))?.name}`
+                    : `Tag: ${activeFilter.replace('tag:', '')}`
+                }
+                <span className="text-sm font-normal ml-2 text-gray-600">
+                  ({paginationInfo.totalItems} total)
+                </span>
+              </h2>
+
+              {/* Pagination info and controls - top */}
+              {paginationInfo.totalPages > 1 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} of {paginationInfo.totalPages}
+                  </span>
+                  <div className="flex gap-1">
+                    <Button
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={!paginationInfo.hasPrevPage}
+                      className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                      size="sm"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={!paginationInfo.hasNextPage}
+                      className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                      size="sm"
+                    >
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {paginationInfo.totalItems === 0 ? (
               <div className="text-center py-12 border border-black bg-sage-light">
                 <p className="text-lg mb-4">No components found.</p>
                 <Button
@@ -501,8 +566,9 @@ export default function DashboardPage() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredComponents.map(component => (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {paginationInfo.paginatedComponents.map(component => (
                   <div key={component.id} className="border border-black bg-sage-light overflow-hidden">
                     {/* Component header */}
                     <div className="flex items-center justify-between p-3 border-b border-black">
@@ -566,13 +632,62 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+
+                {/* Pagination controls - bottom */}
+                {paginationInfo.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-black">
+                    <div className="text-sm text-gray-600">
+                      Showing {paginationInfo.startIndex + 1}-{Math.min(paginationInfo.endIndex, paginationInfo.totalItems)} of {paginationInfo.totalItems} components
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600">
+                        Page {currentPage} of {paginationInfo.totalPages}
+                      </span>
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                          className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                          size="sm"
+                        >
+                          First
+                        </Button>
+                        <Button
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={!paginationInfo.hasPrevPage}
+                          className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                          size="sm"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={!paginationInfo.hasNextPage}
+                          className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                          size="sm"
+                        >
+                          <ChevronRightIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => setCurrentPage(paginationInfo.totalPages)}
+                          disabled={currentPage === paginationInfo.totalPages}
+                          className="bg-sage hover:bg-sage-dark text-black border border-black rounded-none px-3 py-1 h-auto disabled:opacity-50"
+                          size="sm"
+                        >
+                          Last
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
-      
+
       {/* Login Dialog */}
       <LoginDialog isOpen={showLoginDialog} onClose={() => setShowLoginDialog(false)} />
       
@@ -599,6 +714,7 @@ export default function DashboardPage() {
                 // Update the component
                 updateComponent(cleanComponent.id, cleanComponent)
                   .then(() => {
+                    toast.success(SUCCESS_MESSAGES.COMPONENT_UPDATED)
                     // Force refresh UI
                     setTimeout(() => {
                       const newActiveFilter = activeFilter;
@@ -608,11 +724,11 @@ export default function DashboardPage() {
                   })
                   .catch(error => {
                     console.error("Failed to update component:", error);
-                    alert("Failed to update component. Please try again.");
+                    toast.error(ERROR_MESSAGES.SAVE_FAILED);
                   });
               } catch (error) {
                 console.error("Error preparing component for update:", error);
-                alert("Failed to update component. Please try again.");
+                toast.error(ERROR_MESSAGES.SAVE_FAILED);
               }
             } else {
               // Add new component
@@ -630,6 +746,7 @@ export default function DashboardPage() {
                 // Add the component
                 addComponent(componentToAdd)
                   .then(() => {
+                    toast.success(SUCCESS_MESSAGES.COMPONENT_CREATED)
                     // Force refresh UI
                     setTimeout(() => {
                       const newActiveFilter = activeFilter;
@@ -639,11 +756,11 @@ export default function DashboardPage() {
                   })
                   .catch(error => {
                     console.error("Failed to add component:", error);
-                    alert("Failed to add component. Please try again.");
+                    toast.error(ERROR_MESSAGES.SAVE_FAILED);
                   });
               } catch (error) {
                 console.error("Error preparing component for adding:", error);
-                alert("Failed to add component. Please try again.");
+                toast.error(ERROR_MESSAGES.SAVE_FAILED);
               }
             }
             setIsEditorOpen(false);
