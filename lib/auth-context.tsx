@@ -71,8 +71,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Create mock user based on provider
+      // Use consistent user-1 ID to match test data
       const mockUser: User = {
-        id: `user-${Math.random().toString(36).substring(2, 9)}`,
+        id: 'user-1',
         email: `user@example.com`,
         user_metadata: {
           avatar_url: `https://ui-avatars.com/api/?name=Test+User&background=random`,
