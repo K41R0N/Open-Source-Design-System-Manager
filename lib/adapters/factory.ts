@@ -17,21 +17,24 @@ export type AdapterType = 'localStorage' | 'supabase'
 
 /**
  * Get the adapter type from environment
- * Currently always returns 'localStorage' until Supabase is implemented
+ * Automatically chooses between localStorage and Supabase based on configuration
  */
 function getAdapterType(): AdapterType {
-  // TODO: When ready to use Supabase, update this logic
-  // For now, always use localStorage
-  return 'localStorage'
+  // If explicitly using test data, always use localStorage
+  if (ENV.USE_TEST_DATA) {
+    console.log('[Adapter Factory] Using localStorage adapter (test data mode)')
+    return 'localStorage'
+  }
 
-  // Future logic might look like:
-  // if (ENV.USE_TEST_DATA) {
-  //   return 'localStorage'
-  // }
-  // if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
-  //   return 'supabase'
-  // }
-  // return 'localStorage' // Fallback
+  // If Supabase is configured, use it
+  if (ENV.SUPABASE_URL && ENV.SUPABASE_ANON_KEY) {
+    console.log('[Adapter Factory] Using Supabase adapter')
+    return 'supabase'
+  }
+
+  // Fallback to localStorage
+  console.log('[Adapter Factory] Using localStorage adapter (fallback - Supabase not configured)')
+  return 'localStorage'
 }
 
 /**
