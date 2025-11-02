@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { testComponents, testProjects, testTags } from '@/lib/test-components'
+import { ENV } from '@/lib/constants'
 
-// Load test data when in development mode
-const useTestData = true;
+// Load test data based on environment variable
+const useTestData = ENV.USE_TEST_DATA;
 
 // Define types for our database models
-type Component = {
+export type Component = {
   id: string
   name: string
   html: string
@@ -21,7 +22,7 @@ type Component = {
   tags?: string[]
 }
 
-type Project = {
+export type Project = {
   id: string
   name: string
   description?: string
@@ -30,7 +31,7 @@ type Project = {
   updated_at: string
 }
 
-type Tag = {
+export type Tag = {
   id: string
   name: string
   user_id: string
@@ -38,7 +39,7 @@ type Tag = {
 }
 
 // Create a context for database operations
-type DatabaseContextType = {
+export type DatabaseContextType = {
   components: Component[]
   projects: Project[]
   tags: Tag[]

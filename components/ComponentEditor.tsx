@@ -1,52 +1,110 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Settings, Play, Save } from 'lucide-react'
+import { Settings, Play, Save, AlertTriangle } from 'lucide-react'
 import IframeRenderer from './IframeRenderer'
-import { useDatabase } from '@/lib/database-context'
+import { useDatabase, type Component } from '@/lib/database-context'
+import { SIZE_THRESHOLDS, VALIDATION, DEBOUNCE_DELAYS } from '@/lib/constants'
+import type { SizeWarning, ValidationResult } from '@/lib/types'
 
 interface ComponentEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (component: any) => void;
-  component?: {
-    id?: string;
-    name: string;
-    html: string;
-    css: string;
-    js: string;
-    tags?: string[];
-    project?: string;
-    project_id?: string;
-  };
+  onSave: (component: Partial<Component> & Pick<Component, 'name' | 'html' | 'css' | 'js'>) => void;
+  component?: Partial<Component>;
 }
 
 const ComponentEditor: React.FC<ComponentEditorProps> = ({
   isOpen,
   onClose,
   onSave,
-  component = {
-    name: '',
-    html: '',
-    css: '',
-    js: '',
-    tags: [],
-    project: 'Demo Project'
-  }
+  component
 }) => {
   const { projects, tags, addTag } = useDatabase()
-  const [name, setName] = useState(component.name)
-  const [html, setHtml] = useState(component.html)
-  const [css, setCss] = useState(component.css)
-  const [js, setJs] = useState(component.js)
-  const [selectedProject, setSelectedProject] = useState(component.project_id || projects[0]?.id || '')
-  const [selectedTags, setSelectedTags] = useState<string[]>(component.tags || [])
+  const [name, setName] = useState(component?.name || '')
+  const [html, setHtml] = useState(component?.html || '')
+  const [css, setCss] = useState(component?.css || '')
+  const [js, setJs] = useState(component?.js || '')
+  const [selectedProject, setSelectedProject] = useState(component?.project_id || projects[0]?.id || '')
+  const [selectedTags, setSelectedTags] = useState<string[]>(component?.tags || [])
   const [newTagName, setNewTagName] = useState('')
   const [isMetadataOpen, setIsMetadataOpen] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
+
+  // Validate input
+  const validateComponent = useCallback((): ValidationResult => {
+    const errors: string[] = []
+    const warnings: SizeWarning[] = []
+
+    // Name validation
+    if (!name.trim()) {
+      errors.push('Component name is required')
+    } else if (name.length > VALIDATION.COMPONENT_NAME_MAX_LENGTH) {
+      errors.push(`Name must be less than ${VALIDATION.COMPONENT_NAME_MAX_LENGTH} characters`)
+    }
+
+    // Check content sizes for soft warnings (no hard limits!)
+    const htmlSize = html.length
+    const cssSize = css.length
+    const jsSize = js.length
+    const totalSize = htmlSize + cssSize + jsSize
+
+    if (htmlSize > SIZE_THRESHOLDS.HTML_WARNING) {
+      warnings.push({
+        level: 'warning',
+        message: `HTML is large (${(htmlSize / 1024).toFixed(0)}KB). May impact performance.`
+      })
+    }
+
+    if (cssSize > SIZE_THRESHOLDS.CSS_WARNING) {
+      warnings.push({
+        level: 'warning',
+        message: `CSS is large (${(cssSize / 1024).toFixed(0)}KB). May impact performance.`
+      })
+    }
+
+    if (jsSize > SIZE_THRESHOLDS.JS_WARNING) {
+      warnings.push({
+        level: 'warning',
+        message: `JavaScript is large (${(jsSize / 1024).toFixed(0)}KB). May impact performance.`
+      })
+    }
+
+    if (totalSize > SIZE_THRESHOLDS.TOTAL_WARNING) {
+      warnings.push({
+        level: 'info',
+        message: `Total component size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`
+      })
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    }
+  }, [name, html, css, js])
+
+  // Get current validation state
+  const validation = useMemo(() => validateComponent(), [validateComponent])
+
+  // Debounced preview content
+  const [debouncedHtml, setDebouncedHtml] = useState(html)
+  const [debouncedCss, setDebouncedCss] = useState(css)
+  const [debouncedJs, setDebouncedJs] = useState(js)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedHtml(html)
+      setDebouncedCss(css)
+      setDebouncedJs(js)
+    }, DEBOUNCE_DELAYS.PREVIEW)
+
+    return () => clearTimeout(timer)
+  }, [html, css, js])
   
   // Update editor state when component prop changes
   useEffect(() => {
@@ -113,9 +171,20 @@ const ComponentEditor: React.FC<ComponentEditorProps> = ({
   }
   
   const handleSave = () => {
+    // Validate before saving
+    const validationResult = validateComponent()
+
+    if (!validationResult.isValid) {
+      setValidationErrors(validationResult.errors)
+      return
+    }
+
+    // Clear any previous errors
+    setValidationErrors([])
+
     // Always ensure project_id is set to a valid project
     const finalProjectId = selectedProject || projects[0]?.id || '';
-    
+
     onSave({
       ...component,
       name,
@@ -297,11 +366,34 @@ const ComponentEditor: React.FC<ComponentEditorProps> = ({
                 PREVIEW
               </div>
               <div className="flex-1 border border-border overflow-hidden relative">
+                {/* Display validation errors */}
+                {validationErrors.length > 0 && (
+                  <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 text-sm z-20">
+                    {validationErrors.map((error, i) => (
+                      <div key={i}>• {error}</div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Display size warnings */}
+                {validation.warnings && validation.warnings.length > 0 && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-yellow-500 bg-opacity-90 text-black p-2 text-sm z-20">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        {validation.warnings.map((warning, i) => (
+                          <div key={i}>• {warning.message}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="w-full h-full">
-                  <IframeRenderer 
-                    html={html}
-                    css={css}
-                    js={js}
+                  <IframeRenderer
+                    html={debouncedHtml}
+                    css={debouncedCss}
+                    js={debouncedJs}
                     height="100%"
                     width="100%"
                   />

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { useDatabase } from '@/lib/database-context'
+import { useDatabase, type Component } from '@/lib/database-context'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -134,11 +134,11 @@ export default function DashboardPage() {
   
   // State for component editor
   const [isEditorOpen, setIsEditorOpen] = useState(false)
-  const [currentComponent, setCurrentComponent] = useState<any>(null)
-  
+  const [currentComponent, setCurrentComponent] = useState<Component | null>(null)
+
   // State for preview dialog
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [previewComponent, setPreviewComponent] = useState<any>(null)
+  const [previewComponent, setPreviewComponent] = useState<Component | null>(null)
   
   // State for new project dialog
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false)
@@ -162,13 +162,13 @@ export default function DashboardPage() {
   }, [isAuthenticated])
   
   // Handle opening the component editor
-  const handleEditComponent = (component: any) => {
+  const handleEditComponent = (component: Component) => {
     setCurrentComponent(component)
     setIsEditorOpen(true)
   }
-  
+
   // Handle opening the preview dialog
-  const handlePreviewComponent = (component: any) => {
+  const handlePreviewComponent = (component: Component) => {
     setPreviewComponent(component)
     setIsPreviewOpen(true)
   }
@@ -463,16 +463,9 @@ export default function DashboardPage() {
                 </span>
               </Button>
               
-              <Button 
+              <Button
                 onClick={() => {
-                  setCurrentComponent({
-                    name: '',
-                    html: '',
-                    css: '',
-                    js: '',
-                    tags: [],
-                    project_id: projects[0]?.id
-                  })
+                  setCurrentComponent(null)
                   setIsEditorOpen(true)
                 }}
                 className="bg-terracotta hover:bg-terracotta-dark text-black border border-black rounded-none flex items-center gap-2 px-4 py-2 h-auto"
@@ -497,16 +490,9 @@ export default function DashboardPage() {
             {filteredComponents.length === 0 ? (
               <div className="text-center py-12 border border-black bg-sage-light">
                 <p className="text-lg mb-4">No components found.</p>
-                <Button 
+                <Button
                   onClick={() => {
-                    setCurrentComponent({
-                      name: '',
-                      html: '',
-                      css: '',
-                      js: '',
-                      tags: [],
-                      project_id: projects[0]?.id
-                    })
+                    setCurrentComponent(null)
                     setIsEditorOpen(true)
                   }}
                   className="bg-terracotta hover:bg-terracotta-dark text-black border border-black rounded-none"

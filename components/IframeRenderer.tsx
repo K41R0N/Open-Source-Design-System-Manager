@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
+import DOMPurify from 'dompurify'
 
 interface IframeRendererProps {
   html: string
@@ -21,13 +22,30 @@ const IframeRenderer: React.FC<IframeRendererProps> = ({
   const [key, setKey] = useState<number>(0)
   const [isClient, setIsClient] = useState(false)
 
-  // Function to sanitize HTML content
+  // Function to sanitize HTML content using DOMPurify
   const sanitizeHtml = (html: string): string => {
-    // Basic sanitization - in a production app, use a proper sanitizer library
-    return html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+=/gi, 'data-blocked-event=')
+    // Only sanitize on client-side where DOMPurify has access to window
+    if (typeof window === 'undefined') return html
+
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'div', 'span', 'p', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'button', 'input', 'form', 'label', 'select', 'option',
+        'table', 'thead', 'tbody', 'tr', 'td', 'th', 'nav', 'header', 'footer',
+        'section', 'article', 'aside', 'main', 'figure', 'figcaption', 'br', 'hr',
+        'strong', 'em', 'b', 'i', 'u', 'code', 'pre', 'blockquote', 'svg', 'path',
+        'circle', 'rect', 'line', 'polygon', 'polyline', 'g', 'text', 'video', 'audio'
+      ],
+      ALLOWED_ATTR: [
+        'class', 'id', 'style', 'href', 'src', 'alt', 'title', 'width', 'height',
+        'target', 'rel', 'type', 'value', 'placeholder', 'name', 'for', 'checked',
+        'disabled', 'readonly', 'required', 'aria-*', 'data-*', 'role', 'tabindex',
+        'viewBox', 'fill', 'stroke', 'stroke-width', 'd', 'cx', 'cy', 'r', 'x', 'y',
+        'x1', 'y1', 'x2', 'y2', 'points', 'transform'
+      ],
+      ALLOW_DATA_ATTR: true,
+      ALLOW_ARIA_ATTR: true,
+    })
   }
 
   // Instead of manipulating the iframe directly, we'll create the full HTML content
