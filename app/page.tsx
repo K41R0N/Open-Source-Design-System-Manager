@@ -78,23 +78,28 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left side - Text content */}
           <div className="lg:col-span-4 pt-8 order-2 lg:order-1">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 tracking-tight leading-none">
+            <div className="mb-4">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-none mb-2">
+                Figaro
+              </h1>
+              <p className="text-xl sm:text-2xl font-mono text-terracotta">🎭</p>
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight leading-tight">
               Build once.
               <br />
               Use forever.
-            </h1>
+            </h2>
             <p className="text-lg sm:text-xl mb-8 max-w-2xl leading-relaxed">
-              A sandbox for your most interesting, creative, and useful components.
+              Your design system manager. Stop rebuilding the same components.
               Store them, tag them, reuse them—anywhere.
             </p>
             <Button 
               onClick={() => {
-                // Navigate to the dashboard page
                 window.location.href = '/dashboard';
               }}
               className="w-full sm:w-auto bg-terracotta hover:bg-terracotta-dark text-black rounded-none border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-6 py-6 h-auto text-lg"
             >
-              Start Sandboxing
+              Get Started
             </Button>
           </div>
 
@@ -107,15 +112,14 @@ export default function LandingPage() {
                     <h2 className="uppercase tracking-wider font-bold">Edit Component</h2>
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                    <p className="text-sm font-semibold">Sign Up to Start Storing your components</p>
-                    <Button 
+                    <p className="text-sm font-semibold">Sign Up to Save Your Components</p>
+                    <Button
                       onClick={() => {
-                        // Navigate to the dashboard page
                         window.location.href = '/dashboard';
                       }}
                       className="bg-terracotta hover:bg-terracotta-dark text-black border border-black h-9 px-4"
                     >
-                      Save
+                      Get Started
                     </Button>
                   </div>
                 </div>
@@ -208,7 +212,7 @@ export default function LandingPage() {
 
       {/* Use Cases Section */}
       <section className="container mx-auto px-6 sm:px-8 py-16 sm:py-24 border-t border-black">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12">Your design system — but cooler.</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12">Your design system — reimagined.</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           <Card className="p-4 sm:p-6 bg-sage-light rounded-none border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Internal Component Library</h3>
@@ -229,9 +233,9 @@ export default function LandingPage() {
       <section className="container mx-auto px-6 sm:px-8 py-16 sm:py-24 border-t border-black vertical-lines-light">
         <h2 className="text-xl sm:text-2xl font-bold mb-8 sm:mb-12 tracking-widest uppercase">WHY DEVELOPERS LOVE IT</h2>
         <div className="space-y-6 sm:space-y-8 max-w-2xl">
-          <blockquote className="text-lg sm:text-xl font-mono">" This is like Notion for code components. "</blockquote>
-          <blockquote className="text-lg sm:text-xl font-mono">" I finally stopped rewriting my nav bar for the i/th time. "</blockquote>
-          <blockquote className="text-lg sm:text-xl font-mono">" Looks sick, Works even better. "</blockquote>
+          <blockquote className="text-lg sm:text-xl font-mono">" Figaro is like Notion for code components. "</blockquote>
+          <blockquote className="text-lg sm:text-xl font-mono">" I finally stopped rewriting my nav bar for the 10th time. "</blockquote>
+          <blockquote className="text-lg sm:text-xl font-mono">" Clean design. Works even better. "</blockquote>
         </div>
       </section>
 
@@ -242,12 +246,11 @@ export default function LandingPage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-center md:text-left">Ready to stop reinventing the button?</h2>
             <Button 
               onClick={() => {
-                // Navigate to the dashboard page
                 window.location.href = '/dashboard';
               }}
               className="w-full md:w-auto bg-terracotta hover:bg-terracotta-dark text-black rounded-none border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all px-4 sm:px-6 py-4 sm:py-6 h-auto text-base sm:text-lg flex items-center justify-center md:justify-start gap-2"
             >
-              Start Sandboxing
+              Start Building
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
