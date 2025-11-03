@@ -27,9 +27,7 @@ CREATE TABLE IF NOT EXISTS tags (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL CHECK (char_length(name) >= 1 AND char_length(name) <= 50),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  -- Ensure unique tag names per user (case-insensitive)
-  CONSTRAINT unique_tag_per_user UNIQUE (user_id, LOWER(name))
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Components table
@@ -57,6 +55,10 @@ CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
 -- Tags indexes
 CREATE INDEX IF NOT EXISTS idx_tags_user_id ON tags(user_id);
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(LOWER(name));
+
+-- Unique index for case-insensitive tag names per user
+-- This enforces that each user can only have one tag with a given name (case-insensitive)
+CREATE UNIQUE INDEX IF NOT EXISTS unique_tag_per_user ON tags(user_id, LOWER(name));
 
 -- Components indexes
 CREATE INDEX IF NOT EXISTS idx_components_user_id ON components(user_id);
