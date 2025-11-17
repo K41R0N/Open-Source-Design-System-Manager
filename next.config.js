@@ -46,17 +46,16 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
           },
-          // Note: CSP is kept relaxed for development
-          // In production with Supabase, tighten this policy
+          // CSP configured for Supabase and OAuth providers
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob:",
+              "img-src 'self' data: blob: https://*.supabase.co https://ui-avatars.com https://avatars.githubusercontent.com https://lh3.googleusercontent.com",
               "font-src 'self' data:",
-              "connect-src 'self'",
+              "connect-src 'self' https://*.supabase.co https://accounts.google.com https://*.googleapis.com",
               "frame-src 'self'",
               "object-src 'none'",
               "base-uri 'self'",
